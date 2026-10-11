@@ -1,24 +1,11 @@
 ---
 configuration:
-  log_level:
-    name: Log Level
+  tunnel_token:
+    name: Cloudflare Tunnel Token
     description: >-
-      Defines the log level for the app.
-  external_hostname:
-    name: External Home Assistant Hostname
-    description: >-
-      Set this to your domain name or subdomain that you want to use to
-      access Home Assistant.
-  tunnel_name:
-    name: Cloudflare Tunnel Name
-    description: >-
-      Defines the name of the tunnel created for the communication between
-      this service and the Cloudflare edge server. The default value should
-      be fine in most use cases.
-  additional_hosts:
-    name: Additional Hosts
-    description: >-
-      Define a list of additional hosts to be routed by the Cloudflare Tunnel.
+      Token of a remote-managed tunnel created in the Cloudflare Zero Trust
+      dashboard (Networks > Tunnels). Paste only the token, not the whole
+      install command. Hostname routes are configured in the dashboard.
   post_quantum:
     name: Use Post-Quantum Cryptography
     description: >-
@@ -26,22 +13,12 @@ configuration:
       also restricts the tunnel to QUIC, which might lead to problems
       for some users.
   run_parameters:
-    name: Add run parameters
+    name: Additional run parameters
     description: >-
-      Possibility to add run parameters to Cloudflared
-  catch_all_service:
-    name: Catch-All Service
+      Optional cloudflared parameters from a fixed allow-list, for example
+      --protocol=http2 or --loglevel=warn. Debug logging is not allowed
+      because it would log request headers including access tokens.
+  log_level:
+    name: Log Level
     description: >-
-      Define a catch-all service which will be called for services not
-      configured directly.
-  nginx_proxy_manager:
-    name: Enable Catch-All Nginx-Proxy-Manager
-    description: >-
-      Sets the catch-all service to the "Nginx-Proxy-Manager Community App".
-  tunnel_token:
-    name: Cloudflare Tunnel Token
-    description: >-
-      When set all other options will be ignored. Use this option if you set up
-      the tunnel with the Cloudflare Dashboard.
-network:
-  36500/tcp: Metrics Web Interface (36500/tcp)
+      Log level of the app's own start-up script (not of cloudflared).
