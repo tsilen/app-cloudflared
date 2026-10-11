@@ -6,178 +6,53 @@ on:
   push:
     branches:
       - main
+      - hardening
   pull_request:
-    branches:
-      - main
-    types:
-      - opened
-      - reopened
-      - synchronize
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  information:
-    name: Gather app information
-    runs-on: ubuntu-latest
-    outputs:
-      architectures: ${{ steps.information.outputs.architectures }}
-      build: ${{ steps.information.outputs.build }}
-      description: ${{ steps.information.outputs.description }}
-      name: ${{ steps.information.outputs.name }}
-      slug: ${{ steps.override.outputs.slug }}
-      target: ${{ steps.information.outputs.target }}
+  lint-and-test:
+    name: Lint and shell tests
+    runs-on: ubuntu-24.04
     steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🚀 Run app information action
-        id: information
-        uses: homeassistant-apps/action-app-information@v2
-      - name: 🚀 Process possible slug override
-        id: override
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: ShellCheck
         run: |
-          slug="${{ steps.information.outputs.slug }}"
-          if [[ ! -z "${{ inputs.slug }}" ]]; then
-            slug="${{ inputs.slug }}"
-          fi
-          echo "slug=$slug" >> $GITHUB_OUTPUT
-
-  lint-app:
-    name: Lint App
-    needs:
-      - information
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🚀 Run App Lint
-        uses: homeassistant-apps/action-app-linter@v3.1.2
-        with:
-          community: true
-          path: "./${{ needs.information.outputs.target }}"
-
-  lint-hadolint:
-    name: Hadolint
-    needs:
-      - information
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🚀 Run Hadolint
-        uses: brpaz/hadolint-action@v1.5.0
-        with:
-          dockerfile: "./${{ needs.information.outputs.target }}/Dockerfile"
-
-  lint-json:
-    name: JSON Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🚀 Run JQ
-        run: |
-          shopt -s globstar
-          cat **/*.json | jq '.'
-
-  lint-markdown:
-    name: MarkdownLint
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🚀 Run mdl
-        uses: actionshub/markdownlint@v3.1.4
-
-  lint-shellcheck:
-    name: Shellcheck
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🚀 Run Shellcheck
-        uses: ludeeus/action-shellcheck@2.0.0
-        env:
-          SHELLCHECK_OPTS: -s bash
-
-  lint-yamllint:
-    name: YAMLLint
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🚀 Run YAMLLint
-        uses: frenck/action-yamllint@v1.5
-
-  lint-prettier:
-    name: Prettier
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🚀 Run Prettier
-        uses: creyD/prettier_action@v4.6
-        with:
-          prettier_options: --write **/*.{json,js,md,yaml}
-
-  test-shell:
-    name: Shell tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🚀 Run shell test suite
-        run: bash ./cloudflared/tests/test_config_and_set_vars.sh
+          shellcheck -s bash cloudflared/rootfs/run.sh cloudflared/tests/*.sh
+          shellcheck -s sh cloudflared/rootfs/build.sh
+      - name: YAMLLint
+        run: yamllint --strict .
+      - name: Shell tests
+        run: bash ./cloudflared/tests/test_run.sh
 
   build:
-    name: Build ${{ matrix.architecture }}
-    needs:
-      - information
-      - lint-app
-      - lint-hadolint
-      - lint-json
-      - lint-markdown
-      - lint-prettier
-      - lint-shellcheck
-      - lint-yamllint
-      - test-shell
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.arch }}
+    needs: lint-and-test
     strategy:
       matrix:
-        architecture: ${{ fromJson(needs.information.outputs.architectures) }}
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
-      - name: ⤵️ Check out code from GitHub
-        uses: actions/checkout@v7
-      - name: 🏗 Set up QEMU
-        uses: docker/setup-qemu-action@v4.4.0
-      - name: 🏗 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.4.1
-      - name: ℹ️ Compose build flags
-        id: flags
-        run: |
-          echo "date=$(date +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
-          if [[ "${{ matrix.architecture}}" = "amd64" ]]; then
-            echo "platform=linux/amd64" >> $GITHUB_OUTPUT
-          elif [[ "${{ matrix.architecture }}" = "aarch64" ]]; then
-            echo "platform=linux/arm64/v8" >> $GITHUB_OUTPUT
-          else
-            echo "::error ::Could not determine platform for architecture ${{ matrix.architecture }}"
-            exit 1
-          fi
-      - name: 🚀 Build
-        uses: docker/build-push-action@v7.4.0
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          push: false
-          context: ${{ needs.information.outputs.target }}
-          file: ${{ needs.information.outputs.target }}/Dockerfile
-          cache-from: type=gha,scope=${{ needs.information.outputs.slug }}-${{ matrix.architecture }}
-          cache-to: type=gha,mode=max,scope=${{ needs.information.outputs.slug }}-${{ matrix.architecture }}
-          platforms: ${{ steps.flags.outputs.platform }}
-          build-args: |
-            BUILD_ARCH=${{ matrix.architecture }}
-            BUILD_DATE=${{ steps.flags.outputs.date }}
-            BUILD_DESCRIPTION=${{ needs.information.outputs.description }}
-            BUILD_FROM=${{ steps.flags.outputs.from }}
-            BUILD_NAME=${{ needs.information.outputs.name }}
-            BUILD_REF=${{ github.sha }}
-            BUILD_REPOSITORY=${{ github.repository }}
-            BUILD_VERSION=edge
+          persist-credentials: false
+      - name: Build image (verifies the cloudflared SHA256)
+        run: |
+          docker build \
+            --build-arg BUILD_ARCH=${{ matrix.arch }} \
+            --build-arg BUILD_VERSION=ci \
+            --tag cloudflared-ci:${{ matrix.arch }} \
+            cloudflared
+      - name: Smoke test
+        run: docker run --rm --entrypoint /usr/bin/cloudflared cloudflared-ci:${{ matrix.arch }} --version
