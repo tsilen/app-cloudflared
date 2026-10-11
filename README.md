@@ -1,54 +1,38 @@
-# Home Assistant App: Cloudflared
+# Home Assistant App: Cloudflared (hardened fork)
 
-[![GitHub Release][releases-shield]][releases]
-![Project Stage][project-stage-shield]
-[![License][license-shield]](LICENSE.md)
+Connect to Home Assistant through a Cloudflare Tunnel without opening ports on
+your router.
 
-![Supports aarch64 Architecture][aarch64-shield]
-![Supports amd64 Architecture][amd64-shield]
+This is a hardened fork of
+[homeassistant-apps/app-cloudflared](https://github.com/homeassistant-apps/app-cloudflared):
 
-[![Github Actions][github-actions-shield]][github-actions]
-![Project Maintenance][maintenance-shield]
-![Reported Installations][installations-shield-stable]
+- built locally by the Supervisor from this repository (no prebuilt image),
+- cloudflared binary pinned and verified by SHA256 for `aarch64` and `amd64`,
+- base image pinned by digest,
+- remote-managed tunnels (token mode) only, no account-wide `cert.pem`,
+- no access to the Home Assistant configuration, no `hassio_api`, no ports,
+- tunnel token never on the command line or in logs,
+- no automatic dependency updates.
 
-Connect remotely to your Home Assistant and other services, without opening ports
-using Cloudflare Tunnel.
-
-## About
-
-Cloudflared connects your Home Assistant Instance via a secure tunnel to a domain
-or subdomain at Cloudflare. This allows you to expose your Home Assistant
-instance and other services to the Internet without opening ports on your router.
-Additionally, you can utilize Cloudflare Zero Trust to further secure your
-connection.
-
-**To use this app, you have to own a domain name (e.g. example.com) that
-is using Cloudflare for its DNS entries. You can find more information about that
-in our [Wiki][wiki].**
-
-**Please be aware that domains from _Freenom_ do not work anymore, so
-you have to chose / migrate to another registrar.**
-
-[:books: Read the full app documentation][docs]
-
-## Disclaimer
-
-Please make sure you comply with the
-[Cloudflare Self-Serve Subscription Agreement][cloudflare-sssa] when using this
-app.
+[:books: Read the full documentation](cloudflared/DOCS.md)
 
 ## Installation
 
-To install this app, manually add our repository to Home Assistant
-using [this link][repository] or by clicking the button below.
+1. In Home Assistant open **Settings → Add-ons → Add-on store** (called
+   **Apps → App store** in newer versions), click **⋮ → Repositories** and add
+   `https://github.com/tsilen/app-cloudflared`.
+2. Install **Cloudflared (hardened)**. The first installation builds the image
+   on your device and takes a few minutes.
+3. Create a tunnel in the Cloudflare Zero Trust dashboard, paste its token into
+   the app configuration and start the app. See [DOCS.md](cloudflared/DOCS.md)
+   for routing, Cloudflare Access and the Home Assistant `trusted_proxies`
+   setting.
 
-[![Add Repository to HA][my-ha-badge]][my-ha-url]
+## Disclaimer
 
-## Support
-
-Got questions?
-
-Feel free to [open an issue here][issue] on GitHub.
+Make sure you comply with the
+[Cloudflare Self-Serve Subscription Agreement](https://www.cloudflare.com/terms/)
+when using this app.
 
 ## Authors & contributors
 
@@ -62,6 +46,7 @@ check [the contributor's page][contributors].
 MIT License
 
 Copyright (c) 2026 Unofficial Home Assistant Apps
+Copyright (c) 2026 Tuomas Silen (hardening changes)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -81,22 +66,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-[aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
-[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
-[cloudflare-sssa]: https://www.cloudflare.com/terms/
 [contributors]: https://github.com/homeassistant-apps/app-cloudflared/graphs/contributors
-[docs]: cloudflared/DOCS.md
-[github-actions-shield]: https://github.com/homeassistant-apps/app-cloudflared/workflows/CI/badge.svg
-[github-actions]: https://github.com/homeassistant-apps/app-cloudflared/actions
-[repository]: https://github.com/homeassistant-apps/repository
-[issue]: https://github.com/homeassistant-apps/app-cloudflared/issues
-[license-shield]: https://img.shields.io/github/license/homeassistant-apps/app-cloudflared
-[maintenance-shield]: https://img.shields.io/maintenance/yes/2026.svg
-[project-stage-shield]: https://img.shields.io/badge/project%20stage-production%20ready-brightgreen.svg
-[releases-shield]: https://img.shields.io/github/v/release/homeassistant-apps/app-cloudflared?include_prereleases
-[releases]: https://github.com/homeassistant-apps/app-cloudflared/releases
 [tobias]: https://github.com/brenner-tobias
-[my-ha-badge]: https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg
-[my-ha-url]: https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fhomeassistant-apps%2Frepository
-[wiki]: https://github.com/homeassistant-apps/app-cloudflared/wiki/How-tos
-[installations-shield-stable]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fanalytics.home-assistant.io%2Faddons.json&query=%24%5B%229074a9fa_cloudflared%22%5D.total&label=Reported%20Installations&link=https%3A%2F%2Fanalytics.home-assistant.io/add-ons
